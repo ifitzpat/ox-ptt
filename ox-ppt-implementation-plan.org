@@ -424,6 +424,8 @@ This mapping can be customized via =org-ppt-slide-level= variable if needed.
 | Bold/Italic/Code | DrawingML text runs with format  |
 | Links            | Hyperlinks (text or images)      |
 
+Content placement can be controlled using =#+ATTR_ORG :layout= attributes (see section 4.3.4). By default, content flows vertically in a single column, but layouts like =left=, =right=, =center= allow for more sophisticated slide designs.
+
 *** 4.3 Special Org Keywords
 
 **** Document-Level Keywords
@@ -455,6 +457,33 @@ Individual slides can be customized via headline properties:
 
 Slide content goes here.
 #+end_example
+
+**** Content Placement Attributes
+
+Use =#+ATTR_ORG= to control where content appears on the slide:
+
+#+begin_example
+,* Two-Column Slide
+
+,#+ATTR_ORG :layout left
+- Bullet points
+- On the left
+- Side of slide
+
+,#+ATTR_ORG :layout right
+[[file:chart.png]]
+
+,#+ATTR_ORG :layout full
+This content spans the full width of the slide.
+#+end_example
+
+Supported layout positions:
+- =left= - Left column (for two-column layouts)
+- =right= - Right column (for two-column layouts)
+- =full= - Full width content (default)
+- =center= - Centered content
+- =top= - Top section
+- =bottom= - Bottom section (useful for notes/footnotes)
 
 * Development Roadmap
 
@@ -495,17 +524,19 @@ Export Org file with lists, tables, images, and formatted text.
 
 *** Tasks
 
-1. Create multiple slide layout templates
-2. Implement layout selection via properties
-3. Add theme customization support
-4. Implement slide backgrounds and colors
-5. Add support for slide transitions
-6. Implement speaker notes
-7. Test: Export with custom layouts and themes
+1. Create multiple slide layout templates (title-only, two-column, full-content)
+2. Implement =#+ATTR_ORG :layout= attribute parsing for content placement
+3. Implement content positioning logic (left, right, full, center, top, bottom)
+4. Add layout selection via slide properties (=:PPTX_LAYOUT:=)
+5. Add theme customization support
+6. Implement slide backgrounds and colors
+7. Add support for slide transitions
+8. Implement speaker notes
+9. Test: Export with custom layouts, two-column slides, and themes
 
 *** Deliverable
 
-Customizable slide appearance and layouts.
+Customizable slide appearance and layouts with flexible content positioning. Support for common layout patterns like two-column slides with text on one side and images on the other.
 
 ** Milestone 4: Advanced Features (Week 7-8)
 
