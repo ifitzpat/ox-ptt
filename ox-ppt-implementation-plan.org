@@ -692,6 +692,98 @@ Ensuring generated XML is:
 - [[https://github.com/yjwen/org-reveal][org-reveal]]: Original reveal.js exporter
 - [[https://github.com/scgilardi/python-pptx][python-pptx]]: Python library for PPTX (design reference)
 
+* Development Guidelines
+
+This section outlines the coding standards and principles to follow when implementing =ox-ppt=.
+
+** Functional Programming Style
+
+Prefer functional programming constructs over imperative loops:
+
+- Use =mapcar= for transforming lists (when you need the results)
+- Use =mapc= for side effects (when you don't need the results)
+- Use =mapcan= for mapping and concatenating results
+- Avoid =dolist= and =dotimes= in favor of mapping functions
+
+#+begin_src elisp
+;; Good: Functional style
+(mapcar (lambda (headline)
+          (org-ppt--headline-to-slide headline info))
+        headlines)
+
+;; Avoid: Imperative style
+(let (result)
+  (dolist (headline headlines)
+    (push (org-ppt--headline-to-slide headline info) result))
+  (nreverse result))
+#+end_src
+
+** DRY Principle (Don't Repeat Yourself)
+
+If you find yourself copying and pasting code or reimplementing a feature, factor it out into a separate function that can be reused:
+
+- Extract repeated logic into helper functions
+- Create utility functions for common operations
+- Use higher-order functions to abstract patterns
+- Prefer composition over duplication
+
+#+begin_src elisp
+;; Good: Extract common logic
+(defun org-ppt--make-text-run (text &optional bold italic)
+  "Create a DrawingML text run with optional formatting."
+  `(a:r ()
+     ,(when (or bold italic)
+        `(a:rPr ,(append (when bold '((b . "1")))
+                        (when italic '((i . "1"))))))
+     (a:t ,text)))
+
+(org-ppt--make-text-run "Hello" t nil)    ; bold
+(org-ppt--make-text-run "World" nil t)    ; italic
+
+;; Avoid: Duplicating similar code
+(defun org-ppt--make-bold-run (text) ...)
+(defun org-ppt--make-italic-run (text) ...)
+(defun org-ppt--make-bold-italic-run (text) ...)
+#+end_src
+
+** Function Size Limit
+
+Keep functions small and focused:
+
+- *Maximum 30 lines* per function body (excluding docstring and signature)
+- If a function exceeds 30 lines, factor logic into helper functions
+- Each function should have a single, clear responsibility
+- Use descriptive function names that indicate purpose
+
+#+begin_src elisp
+;; Good: Small, focused functions
+(defun org-ppt--make-slide (headline info)
+  "Create slide from HEADLINE."
+  (let ((title (org-ppt--extract-title headline))
+        (content (org-ppt--transcode-content headline info))
+        (layout (org-ppt--get-layout headline)))
+    (org-ppt--assemble-slide title content layout)))
+
+(defun org-ppt--extract-title (headline)
+  "Extract title from HEADLINE."
+  (org-element-property :raw-value headline))
+
+;; Avoid: One large monolithic function doing everything
+(defun org-ppt--make-slide (headline info)
+  "Create slide from HEADLINE."
+  ;; 100 lines of mixed logic...
+  )
+#+end_src
+
+** Additional Best Practices
+
+- Use =let*= when bindings depend on previous bindings
+- Prefer =plist-get= and =org-element-property= for accessing data
+- Use meaningful variable names (avoid single-letter names except in lambdas)
+- Add docstrings to all public functions
+- Use =org-ppt--= prefix for internal functions (double dash convention)
+- Keep lines under 80 characters when practical
+
 * Next Steps
 
 1. Set up Git repository and project structure
