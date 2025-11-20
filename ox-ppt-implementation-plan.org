@@ -60,6 +60,148 @@ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 - Text uses DrawingML for formatting
 - Positioning uses EMU (English Metric Units): 914,400 EMUs = 1 inch
 
+** DrawingML: The Visual Rendering Layer
+
+DrawingML (Drawing Markup Language) is the vector graphics and text formatting language that serves as the visual backbone of Office Open XML documents. It's not standalone—it's embedded within PresentationML (PowerPoint) to handle all visual elements.
+
+*** What DrawingML Handles
+
+DrawingML is responsible for:
+- Shape appearance and positioning
+- Text formatting within shapes
+- Colors, themes, fonts, and styles
+- Graphics, charts, tables, and diagrams
+
+*** Core Components
+
+**** Shapes and Positioning
+
+Every visual element on a slide is a shape with a transform (=<a:xfrm>=):
+
+#+begin_src xml
+<a:xfrm>
+  <a:off x="914400" y="914400"/>    <!-- Position: 1" from left, 1" from top -->
+  <a:ext cx="7315200" cy="914400"/> <!-- Size: 8" wide, 1" tall -->
+</a:xfrm>
+#+end_src
+
+Key units: EMUs (English Metric Units)
+- 914,400 EMUs = 1 inch
+- 12,700 EMUs = 1 point
+
+**** Text Hierarchy
+
+Text in shapes follows a hierarchical structure:
+
+#+begin_example
+Shape
+└── Text Body (<a:txBody>)
+    ├── Body Properties (<a:bodyPr>) - columns, margins, wrapping
+    └── Paragraphs (<a:p>)
+        ├── Paragraph Properties (<a:pPr>) - alignment, spacing, bullets
+        └── Text Runs (<a:r>)
+            ├── Run Properties (<a:rPr>) - bold, italic, size, font
+            └── Text Content (<a:t>)
+#+end_example
+
+**** Text Formatting
+
+Unlike WordprocessingML where formatting is in child elements, DrawingML uses *attributes* on =<a:rPr>=:
+
+#+begin_src xml
+<a:r>
+  <a:rPr sz="2400"        <!-- 24pt font size -->
+         b="1"            <!-- bold -->
+         i="1"            <!-- italic -->
+         u="sng"          <!-- underline: single -->
+         baseline="30000"> <!-- superscript: 30% -->
+    <a:latin typeface="Arial"/>
+    <a:solidFill>
+      <a:srgbClr val="FF0000"/>  <!-- red text -->
+    </a:solidFill>
+  </a:rPr>
+  <a:t>Hello World</a:t>
+</a:r>
+#+end_src
+
+**** Lists and Bullets
+
+Bullets and numbering are paragraph-level properties:
+
+#+begin_src xml
+<a:p>
+  <a:pPr lvl="0">  <!-- indentation level -->
+    <a:buFont typeface="Arial"/>
+    <a:buChar char="•"/>  <!-- bullet character -->
+  </a:pPr>
+  <a:r>
+    <a:t>First item</a:t>
+  </a:r>
+</a:p>
+#+end_src
+
+**** Themes
+
+DrawingML defines themes (=<a:theme>=) that provide consistent styling:
+
+#+begin_src xml
+<a:theme>
+  <a:themeElements>
+    <a:clrScheme>     <!-- Color palette -->
+    <a:fontScheme>    <!-- Font families -->
+    <a:fmtScheme>     <!-- Fill/line/effect styles -->
+  </a:themeElements>
+</a:theme>
+#+end_src
+
+*** DrawingML in PPTX Files
+
+DrawingML appears in multiple places within a PPTX file:
+
+**** On Slides (=ppt/slides/slideN.xml=)
+
+#+begin_src xml
+<p:sp>  <!-- Presentation shape -->
+  <p:spPr>  <!-- Shape properties -->
+    <a:xfrm>  <!-- DrawingML transform -->
+    <a:prstGeom prst="rect">  <!-- DrawingML geometry -->
+  </p:spPr>
+  <p:txBody>  <!-- Text body -->
+    <a:bodyPr/>  <!-- DrawingML text properties -->
+    <a:p>  <!-- DrawingML paragraph -->
+  </p:txBody>
+</p:sp>
+#+end_src
+
+**** In Theme Files (=ppt/theme/themeN.xml=)
+
+Entirely DrawingML, defining colors, fonts, and format schemes.
+
+**** In Layout/Master Slides
+
+Templates that use DrawingML placeholders that individual slides inherit.
+
+*** Key Characteristics
+
+1. *Namespace*: =xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"=
+2. *EMU-based positioning*: Everything is measured in EMUs, requiring conversion from inches/points
+3. *Attribute-heavy formatting*: Unlike HTML or WordML, most text formatting uses attributes, not nested elements
+4. *Hierarchical styling*: Themes → Master → Layout → Slide (inheritance cascade)
+5. *Verbose but structured*: DrawingML XML is very explicit—no defaults, everything must be specified
+
+*** Implications for ox-ppt Implementation
+
+When building the exporter, we must:
+
+1. Generate DrawingML text structures from Org-mode text
+2. Calculate EMU positions for layout
+3. Handle the text hierarchy: paragraph → run → properties
+4. Map Org formatting (bold/italic/code) to =<a:rPr>= attributes
+5. Create shape geometries for text boxes, images, tables
+6. Use =esxml= to generate these nested structures cleanly
+
+The verbosity of DrawingML makes =esxml= particularly valuable—building these nested structures with S-expressions will be much cleaner than string concatenation.
+
 * Implementation Architecture
 
 ** Phase 1: Core Export Backend
