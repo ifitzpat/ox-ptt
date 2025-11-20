@@ -1,0 +1,132 @@
+#+TITLE: ox-ppt: Org-mode to PowerPoint Exporter
+#+AUTHOR: ox-ppt contributors
+
+* Overview
+
+=ox-ppt= is an Emacs Lisp package that exports Org-mode documents to Microsoft PowerPoint (PPTX) format.
+
+** Features
+
+- Export Org-mode documents to valid PPTX presentations
+- Title slide from =#+TITLE=, =#+SUBTITLE=, =#+AUTHOR=, and =#+DATE=
+- Level 1 headlines become slides
+- Level 2+ headlines become content within slides
+- Clean XML generation using =esxml=
+
+** Status
+
+*Early Development* - Milestone 1 (Minimal Viable Exporter) in progress
+
+Currently supports:
+- Basic slide generation
+- Title slides
+- Simple text content
+
+* Installation
+
+** Dependencies
+
+*** Emacs Lisp
+
+- =esxml= - XML generation from S-expressions
+- Emacs 26.1+
+- Org-mode 9.0+
+
+*** System
+
+- =zip= - Command-line archive tool (standard Unix utility)
+
+** Installation Steps
+
+1. Clone this repository
+2. Install =esxml= via MELPA or manually
+3. Add to your Emacs config:
+
+#+begin_src elisp
+(add-to-list 'load-path "/path/to/ox-ppt")
+(require 'ox-ppt)
+#+end_src
+
+* Usage
+
+** Basic Export
+
+1. Open an Org-mode file
+2. Run =M-x org-ppt-export-to-pptx=
+3. A =.pptx= file will be created
+
+** Example Document
+
+#+begin_example
+,#+TITLE: My Presentation
+,#+SUBTITLE: A Demo
+,#+AUTHOR: Your Name
+
+,* First Slide
+
+Content for the first slide.
+
+,* Second Slide
+
+Content for the second slide.
+#+end_example
+
+** Document Structure
+
+- =#+TITLE= - Creates title slide
+- =#+SUBTITLE= - Subtitle on title slide (optional)
+- =#+AUTHOR= - Author on title slide (optional)
+- =#+DATE= - Date on title slide (optional)
+- =* Level 1 Headlines= - Each becomes a new slide
+- =** Level 2+ Headlines= - Become headings within slides
+
+* Configuration
+
+** Customization Variables
+
+- =org-ppt-slide-level= - Headline level for slides (default: 1)
+- =org-ppt-title-slide-enabled= - Generate title slide (default: t)
+- =org-ppt-slide-width= - Slide width in EMUs (default: 9144000 = 10")
+- =org-ppt-slide-height= - Slide height in EMUs (default: 6858000 = 7.5")
+- =org-ppt-zip-program= - Path to zip program (default: "zip")
+
+* Development
+
+See =ox-ppt-implementation-plan.org= for the complete development plan.
+
+** Development Guidelines
+
+- Functional programming style (prefer =mapcar= over =dolist=)
+- DRY principle (extract common logic into functions)
+- Maximum 30 lines per function body
+- Use =org-ppt--= prefix for internal functions
+
+** Project Structure
+
+#+begin_example
+ox-ppt/
+├── ox-ppt.el                 ; Main export backend
+├── ox-ppt-utils.el           ; Utility functions
+├── ox-ppt-shapes.el          ; Shape generation
+├── ox-ppt-templates.el       ; Static file templates
+├── test/
+│   └── basic-test.org        ; Test file
+└── README.org                ; This file
+#+end_example
+
+** Running Tests
+
+#+begin_src sh
+cd test
+emacs -batch -l ../ox-ppt.el -l basic-test.org -f org-ppt-export-to-pptx
+#+end_src
+
+* License
+
+TBD
+
+* Contributing
+
+This is an early-stage project. Contributions welcome!
+
+See =ox-ppt-implementation-plan.org= for the roadmap.
