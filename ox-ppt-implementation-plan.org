@@ -1,0 +1,451 @@
+#+TITLE: Org-Mode to PowerPoint (PPTX) Exporter Implementation Plan
+#+AUTHOR: Implementation Plan
+#+DATE: 2025-11-20
+
+* Overview
+
+This document outlines the implementation plan for =ox-ppt=, an Emacs Lisp package that exports Org-mode documents to Microsoft PowerPoint (PPTX) format.
+
+** Goals
+
+- Export Org-mode documents to valid PPTX presentations
+- Support core Org-mode elements (headings, lists, tables, images, code blocks)
+- Maintain semantic structure from Org to PowerPoint slides
+- Provide customizable slide layouts and themes
+- Use =esxml= for clean XML generation
+
+** Project Inspiration
+
+- [[https://github.com/emacsmirror/org-re-reveal][org-re-reveal]]: Org to reveal.js exporter (architectural reference)
+- [[https://orgmode.org/worg/dev/org-export-reference.html][Org Export Reference]]: Official export backend documentation
+
+* Understanding the Target Format
+
+** PPTX File Structure
+
+A PPTX file is a ZIP archive containing XML files following the Office Open XML (OOXML) PresentationML specification.
+
+*** Core Components
+
+1. =[Content_Types].xml= - Defines content types for all parts
+2. =_rels/.rels= - Package-level relationships
+3. =ppt/presentation.xml= - Main presentation file (references slides)
+4. =ppt/slides/= - Directory containing individual slide XML files
+5. =ppt/slideLayouts/= - Slide layout templates
+6. =ppt/slideMasters/= - Master slide definitions
+7. =ppt/theme/= - Theme files (colors, fonts, effects)
+8. =ppt/_rels/= - Relationship files linking components
+
+*** Key Characteristics
+
+- Each slide is a separate XML file
+- Slides reference layouts, which reference masters
+- Relationships managed through =.rels= files
+- All XML uses specific PresentationML namespaces
+
+** PresentationML Structure
+
+*** Essential Namespaces
+
+#+begin_src xml
+xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+#+end_src
+
+*** Slide Content Organization
+
+- Slides contain shape trees (=<p:spTree>=)
+- Shapes include text boxes, images, tables, charts
+- Text uses DrawingML for formatting
+- Positioning uses EMU (English Metric Units): 914,400 EMUs = 1 inch
+
+* Implementation Architecture
+
+** Phase 1: Core Export Backend
+
+*** 1.1 Backend Definition
+
+Create the basic org-export backend structure:
+
+#+begin_src elisp
+(org-export-define-backend 'ppt
+  '((headline . org-ppt-headline)
+    (section . org-ppt-section)
+    (paragraph . org-ppt-paragraph)
+    (plain-text . org-ppt-plain-text)
+    (template . org-ppt-template)
+    ;; ... more transcoders
+    )
+  :menu-entry
+  '(?p "Export to PowerPoint"
+       ((?P "As PPTX file" org-ppt-export-to-pptx))))
+#+end_src
+
+*** 1.2 Transcode Functions
+
+Implement transcoder functions for each Org element type:
+
+- =org-ppt-template= - Main template function, orchestrates file generation
+- =org-ppt-headline= - Convert headlines to slides
+- =org-ppt-plain-list= - Handle bulleted/numbered lists
+- =org-ppt-item= - List items
+- =org-ppt-paragraph= - Text paragraphs
+- =org-ppt-plain-text= - Process plain text
+- =org-ppt-bold=, =org-ppt-italic=, =org-ppt-code= - Text formatting
+- =org-ppt-link= - Hyperlinks and image references
+- =org-ppt-src-block= - Source code blocks
+- =org-ppt-table= - Tables
+
+*** 1.3 Internal Data Structure
+
+Design intermediate representation:
+
+#+begin_src elisp
+;; Slide structure
+(slide :title "Title"
+       :level 1
+       :content (list of content blocks))
+
+;; Content blocks
+(text-block :text "..." :format '(bold italic))
+(list-block :type 'unordered :items (...))
+(table-block :rows (...) :cols (...))
+(image-block :path "..." :caption "...")
+#+end_src
+
+** Phase 2: PPTX Generation with esxml
+
+*** 2.1 XML Generation Layer
+
+Use =esxml= to generate PresentationML XML:
+
+#+begin_src elisp
+;; Example: Generate slide XML
+(defun org-ppt-generate-slide-xml (slide-num slide-data)
+  (esxml-to-xml
+   `(p:sld ((xmlns:p . "http://...")
+            (xmlns:a . "http://..."))
+     (p:cSld ()
+       (p:spTree ()
+         ,(org-ppt-generate-title-shape (plist-get slide-data :title))
+         ,(org-ppt-generate-content-shapes (plist-get slide-data :content)))))))
+#+end_src
+
+*** 2.2 Shape Generation
+
+Create functions to generate PresentationML shapes:
+
+- =org-ppt-generate-text-box= - Text content shapes
+- =org-ppt-generate-title-shape= - Title placeholders
+- =org-ppt-generate-list-shape= - Bulleted/numbered lists
+- =org-ppt-generate-table-shape= - Table shapes
+- =org-ppt-generate-image-shape= - Picture shapes
+- =org-ppt-generate-code-shape= - Code block shapes (monospace text)
+
+*** 2.3 Positioning and Layout
+
+Implement layout logic:
+
+#+begin_src elisp
+;; Default slide dimensions (10" x 7.5" in EMUs)
+(defvar org-ppt-slide-width 9144000)
+(defvar org-ppt-slide-height 6858000)
+
+;; Margins and spacing
+(defvar org-ppt-margin-top 914400)    ; 1 inch
+(defvar org-ppt-margin-left 914400)
+(defvar org-ppt-content-width 7315200) ; 8 inches
+#+end_src
+
+** Phase 3: File Assembly
+
+*** 3.1 ZIP Archive Creation
+
+Use Emacs =archive-zip= functionality or shell =zip= command:
+
+#+begin_src elisp
+(defun org-ppt-create-pptx (xml-parts output-file)
+  "Assemble XML parts into PPTX ZIP archive."
+  ;; Create temporary directory
+  ;; Write all XML files
+  ;; Create ZIP archive
+  ;; Clean up temporary files
+  )
+#+end_src
+
+*** 3.2 Required Static Files
+
+Generate or include templates for:
+
+1. =[Content_Types].xml= - Content type declarations
+2. =_rels/.rels= - Root relationships
+3. =ppt/_rels/presentation.xml.rels= - Presentation relationships
+4. =ppt/presentation.xml= - Main presentation (list of slides)
+5. =ppt/slideMasters/slideMaster1.xml= - Default master
+6. =ppt/slideLayouts/slideLayout1.xml= - Default layout
+7. =ppt/theme/theme1.xml= - Default theme
+
+*** 3.3 Dynamic Content Generation
+
+For each slide:
+
+1. Generate =ppt/slides/slideN.xml=
+2. Generate =ppt/slides/_rels/slideN.xml.rels= (if needed)
+3. Update relationships in =ppt/_rels/presentation.xml.rels=
+4. Update slide list in =ppt/presentation.xml=
+
+** Phase 4: Org Element Mapping
+
+*** 4.1 Headline to Slide Mapping
+
+Default strategy:
+
+- Level 1 headlines (=*=) → New slides (title slides)
+- Level 2 headlines (=**=) → New slides (content slides)
+- Level 3+ headlines (=***=) → Sub-points within slides
+
+Customizable via =org-ppt-slide-level= variable.
+
+*** 4.2 Content Handling
+
+| Org Element      | PowerPoint Representation        |
+|------------------+----------------------------------|
+| Paragraph        | Text box with paragraphs         |
+| Plain list       | Bulleted/numbered text           |
+| Table            | Table shape                      |
+| Image            | Picture shape                    |
+| Source block     | Text box with monospace font     |
+| Quote block      | Text box with special formatting |
+| Bold/Italic/Code | DrawingML text runs with format  |
+| Links            | Hyperlinks (text or images)      |
+
+*** 4.3 Special Org Keywords
+
+Support slide-specific properties:
+
+#+begin_example
+,#+PPTX_LAYOUT: title
+,#+PPTX_THEME: default
+,#+PPTX_BACKGROUND: #ffffff
+,#+PPTX_TRANSITION: fade
+
+,* Slide Title
+:PROPERTIES:
+:PPTX_LAYOUT: title_only
+:PPTX_NOTES: Speaker notes here
+:END:
+#+end_example
+
+* Development Roadmap
+
+** Milestone 1: Minimal Viable Exporter (Week 1-2)
+
+*** Tasks
+
+1. Set up project structure and dependencies
+2. Define basic export backend with =org-export-define-backend=
+3. Implement =org-ppt-template= function
+4. Create minimal PPTX static file templates
+5. Implement basic headline → slide conversion
+6. Generate simple text slides with titles
+7. Assemble PPTX ZIP archive
+8. Test: Export simple org file with headlines and text
+
+*** Deliverable
+
+Export Org file with headlines and plain text to valid PPTX.
+
+** Milestone 2: Rich Content Support (Week 3-4)
+
+*** Tasks
+
+1. Implement list transcoders (ordered/unordered)
+2. Add text formatting (bold, italic, underline, code)
+3. Implement table generation
+4. Add image support
+5. Implement source code block formatting
+6. Add quote blocks and verse blocks
+7. Test: Export org file with diverse content types
+
+*** Deliverable
+
+Export Org file with lists, tables, images, and formatted text.
+
+** Milestone 3: Layout and Theming (Week 5-6)
+
+*** Tasks
+
+1. Create multiple slide layout templates
+2. Implement layout selection via properties
+3. Add theme customization support
+4. Implement slide backgrounds and colors
+5. Add support for slide transitions
+6. Implement speaker notes
+7. Test: Export with custom layouts and themes
+
+*** Deliverable
+
+Customizable slide appearance and layouts.
+
+** Milestone 4: Advanced Features (Week 7-8)
+
+*** Tasks
+
+1. Add support for mathematical equations (as images)
+2. Implement slide numbering
+3. Add footer/header support
+4. Implement master slide customization
+5. Add incremental list animation
+6. Support for multiple columns
+7. Comprehensive testing and bug fixes
+8. Documentation and examples
+
+*** Deliverable
+
+Feature-complete exporter with documentation.
+
+* Technical Considerations
+
+** Dependencies
+
+- =esxml= - XML generation from S-expressions
+- =zip= - Archive creation (system command or elisp library)
+- =cl-lib= - Common Lisp extensions
+- =org-element= - Parse tree navigation (built-in)
+
+** Configuration Variables
+
+Planned customization options:
+
+#+begin_src elisp
+(defgroup org-export-ppt nil
+  "Options for exporting Org-mode to PowerPoint."
+  :tag "Org PowerPoint"
+  :group 'org-export)
+
+(defcustom org-ppt-slide-level 2
+  "Headline level that defines individual slides."
+  :type 'integer)
+
+(defcustom org-ppt-default-theme "default"
+  "Default PowerPoint theme."
+  :type 'string)
+
+(defcustom org-ppt-slide-width 9144000
+  "Slide width in EMUs (default: 10 inches)."
+  :type 'integer)
+
+(defcustom org-ppt-slide-height 6858000
+  "Slide height in EMUs (default: 7.5 inches)."
+  :type 'integer)
+#+end_src
+
+** File Organization
+
+Proposed project structure:
+
+#+begin_example
+ox-ppt/
+├── ox-ppt.el                 ; Main export backend
+├── ox-ppt-xml.el            ; XML generation functions
+├── ox-ppt-shapes.el         ; Shape generation
+├── ox-ppt-templates.el      ; Static file templates
+├── ox-ppt-utils.el          ; Utility functions
+├── test/
+│   ├── test-ox-ppt.el       ; Unit tests
+│   └── test-files/          ; Sample org files
+├── examples/
+│   ├── basic.org            ; Basic example
+│   └── advanced.org         ; Advanced features
+└── README.org               ; Documentation
+#+end_example
+
+** Testing Strategy
+
+1. Unit tests for each transcoder function
+2. Integration tests for PPTX generation
+3. Validation: Open generated PPTX in PowerPoint/LibreOffice
+4. Test suite with various Org element combinations
+5. Round-trip testing (if feasible)
+
+** Known Challenges
+
+*** 1. Text Formatting Complexity
+
+DrawingML text formatting is verbose. Need helper functions for:
+- Text runs with formatting properties
+- Paragraph properties (alignment, spacing, indentation)
+- List bullet styles and numbering
+
+*** 2. Positioning and Layout
+
+Automatic layout of content shapes requires:
+- Height calculation for text content
+- Intelligent overflow handling
+- Multi-column layouts
+
+*** 3. Image Handling
+
+Must handle:
+- Various image formats (PNG, JPEG, SVG)
+- Image embedding vs. linking
+- Size and positioning
+- SVG to raster conversion (if needed)
+
+*** 4. Table Complexity
+
+PowerPoint tables have:
+- Cell-level formatting
+- Borders and shading
+- Column width calculations
+- Cell merging (for Org table groups)
+
+*** 5. PPTX Validation
+
+Ensuring generated XML is:
+- Well-formed
+- Schema-compliant
+- Compatible with PowerPoint and LibreOffice
+
+** Fallback Strategies
+
+- Start with simple layouts; add complexity iteratively
+- Use text boxes for unsupported elements initially
+- Provide warning messages for unhandled content
+- Generate valid (if simple) output rather than failing
+
+* References and Resources
+
+** Specifications
+
+- [[https://www.ecma-international.org/publications-and-standards/standards/ecma-376/][ECMA-376: Office Open XML File Formats]]
+- [[https://learn.microsoft.com/en-us/office/open-xml/presentation/structure-of-a-presentationml-document][Microsoft: Structure of a PresentationML Document]]
+- [[https://www.iso.org/standard/71691.html][ISO/IEC 29500: Information technology — Document description and processing languages — Office Open XML File Formats]]
+
+** Tools and Libraries
+
+- [[https://github.com/tali713/esxml][esxml: XML S-expressions for Emacs Lisp]]
+- [[https://orgmode.org/worg/dev/org-export-reference.html][Org Export Reference]]
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Parsing-HTML_002fXML.html][Emacs Lisp: Parsing HTML/XML]]
+
+** Example Projects
+
+- [[https://github.com/emacsmirror/org-re-reveal][org-re-reveal]]: Org to reveal.js
+- [[https://github.com/yjwen/org-reveal][org-reveal]]: Original reveal.js exporter
+- [[https://github.com/scgilardi/python-pptx][python-pptx]]: Python library for PPTX (design reference)
+
+* Next Steps
+
+1. Set up Git repository and project structure
+2. Create =ox-ppt.el= with basic backend definition
+3. Research and extract minimal PPTX template files
+4. Implement template function and basic headline transcoder
+5. Generate first test PPTX with single slide
+6. Iterate on content support
+
+* Conclusion
+
+This implementation plan provides a structured approach to developing =ox-ppt=, an Org-mode to PowerPoint exporter. By following the phased approach and leveraging =esxml= for XML generation, we can create a maintainable and extensible exporter that brings Org-mode's powerful document authoring to PowerPoint presentations.
+
+The project draws inspiration from =org-re-reveal= while targeting the more complex PPTX format. Success will require careful attention to the PresentationML specification, but the modular architecture and clear milestones should make the implementation manageable.
