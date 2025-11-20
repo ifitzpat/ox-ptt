@@ -341,13 +341,44 @@ For each slide:
 
 *** 4.1 Headline to Slide Mapping
 
+**** Title Slide
+
+The first slide (title slide) is generated from document properties:
+
+- =#+TITLE= - Main presentation title
+- =#+SUBTITLE= - Optional subtitle
+- =#+AUTHOR= - Presentation author (optional)
+- =#+DATE= - Date (optional)
+- =#+TITLE-BACKGROUND= - Background color or image for title slide
+
+**** Content Slides
+
 Default strategy:
 
-- Level 1 headlines (=*=) → New slides (title slides)
-- Level 2 headlines (=**=) → New slides (content slides)
-- Level 3+ headlines (=***=) → Sub-points within slides
+- *Level 1 headlines* (=*=) → New slides (one headline = one slide)
+- *Level 2+ headlines* (=**=, =***=, etc.) → Headings/subheadings within the current slide
 
-Customizable via =org-ppt-slide-level= variable.
+Example:
+
+#+begin_example
+,#+TITLE: My Presentation
+,#+SUBTITLE: An Overview
+,#+AUTHOR: John Doe
+
+,* First Slide
+This is content for the first slide.
+
+,** This is a heading within the slide
+More content here.
+
+,*** This is a subheading
+Even more detail.
+
+,* Second Slide
+This becomes a new slide.
+#+end_example
+
+This mapping can be customized via =org-ppt-slide-level= variable if needed.
 
 *** 4.2 Content Handling
 
@@ -364,19 +395,34 @@ Customizable via =org-ppt-slide-level= variable.
 
 *** 4.3 Special Org Keywords
 
-Support slide-specific properties:
+**** Document-Level Keywords
+
+These keywords control the title slide and global presentation settings:
 
 #+begin_example
-,#+PPTX_LAYOUT: title
+,#+TITLE: My Presentation Title
+,#+SUBTITLE: Optional subtitle text
+,#+AUTHOR: John Doe
+,#+DATE: 2025-11-20
+,#+TITLE-BACKGROUND: #4472C4
 ,#+PPTX_THEME: default
-,#+PPTX_BACKGROUND: #ffffff
-,#+PPTX_TRANSITION: fade
+,#+PPTX_SLIDE_SIZE: standard
+#+end_example
 
+**** Slide-Level Properties
+
+Individual slides can be customized via headline properties:
+
+#+begin_example
 ,* Slide Title
 :PROPERTIES:
 :PPTX_LAYOUT: title_only
+:PPTX_BACKGROUND: #ffffff
+:PPTX_TRANSITION: fade
 :PPTX_NOTES: Speaker notes here
 :END:
+
+Slide content goes here.
 #+end_example
 
 * Development Roadmap
@@ -466,9 +512,16 @@ Planned customization options:
   :tag "Org PowerPoint"
   :group 'org-export)
 
-(defcustom org-ppt-slide-level 2
-  "Headline level that defines individual slides."
+(defcustom org-ppt-slide-level 1
+  "Headline level that defines individual slides.
+Level 1 means each level-1 headline becomes a new slide.
+Headlines below this level become headings within the slide."
   :type 'integer)
+
+(defcustom org-ppt-title-slide-enabled t
+  "Whether to generate a title slide from document properties.
+If non-nil, creates a title slide from #+TITLE, #+SUBTITLE, etc."
+  :type 'boolean)
 
 (defcustom org-ppt-default-theme "default"
   "Default PowerPoint theme."
