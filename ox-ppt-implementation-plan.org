@@ -228,8 +228,8 @@ Create the basic org-export backend structure:
 
 Implement transcoder functions for each Org element type:
 
-- =org-ppt-template= - Main template function, orchestrates file generation
-- =org-ppt-headline= - Convert headlines to slides
+- =org-ppt-template= - Main template function, orchestrates file generation and slide assembly
+- =org-ppt-headline= - Convert headlines to slide content (esxml)
 - =org-ppt-plain-list= - Handle bulleted/numbered lists
 - =org-ppt-item= - List items
 - =org-ppt-paragraph= - Text paragraphs
@@ -239,40 +239,71 @@ Implement transcoder functions for each Org element type:
 - =org-ppt-src-block= - Source code blocks
 - =org-ppt-table= - Tables
 
-*** 1.3 Internal Data Structure
+Each transcoder generates esxml structures directly, which serve as our intermediate representation before conversion to XML strings.
 
-Design intermediate representation:
+*** 1.3 Template Function Architecture
+
+The template function orchestrates the entire export process:
 
 #+begin_src elisp
-;; Slide structure
-(slide :title "Title"
-       :level 1
-       :content (list of content blocks))
+(defun org-ppt-template (contents info)
+  "Main template function for PPTX export.
+Uses the org-element parse tree directly to identify slides."
+  (let* ((tree (plist-get info :parse-tree))
+         (title-slide (org-ppt--make-title-slide info))
+         (content-slides (org-ppt--collect-level-1-headlines tree)))
 
-;; Content blocks
-(text-block :text "..." :format '(bold italic))
-(list-block :type 'unordered :items (...))
-(table-block :rows (...) :cols (...))
-(image-block :path "..." :caption "...")
+    ;; Generate esxml for each slide
+    (let ((all-slides
+           (cons title-slide
+                 (mapcar (lambda (headline)
+                           (org-ppt--headline-to-slide-esxml headline info))
+                         content-slides))))
+
+      ;; Write PPTX structure
+      (org-ppt--write-pptx-archive all-slides info))))
 #+end_src
+
+Key points:
+- Walk the org-element parse tree to identify slide boundaries
+- Generate esxml for each slide (esxml IS the intermediate representation)
+- Assemble all slides into the PPTX ZIP archive
+
+No custom intermediate data structure needed—we use org-element's parse tree + esxml.
 
 ** Phase 2: PPTX Generation with esxml
 
-*** 2.1 XML Generation Layer
+*** 2.1 XML Generation with esxml
 
-Use =esxml= to generate PresentationML XML:
+Transcoders generate esxml structures (S-expressions), which are then converted to XML strings:
 
 #+begin_src elisp
-;; Example: Generate slide XML
-(defun org-ppt-generate-slide-xml (slide-num slide-data)
-  (esxml-to-xml
-   `(p:sld ((xmlns:p . "http://...")
-            (xmlns:a . "http://..."))
-     (p:cSld ()
-       (p:spTree ()
-         ,(org-ppt-generate-title-shape (plist-get slide-data :title))
-         ,(org-ppt-generate-content-shapes (plist-get slide-data :content)))))))
+;; Example: Headline transcoder generates esxml
+(defun org-ppt-headline (headline contents info)
+  "Transcode a HEADLINE element from Org to esxml.
+Returns an esxml structure representing DrawingML shapes."
+  (let ((title (org-element-property :raw-value headline))
+        (level (org-element-property :level headline)))
+    (if (= level 1)
+        ;; Level 1 headlines are handled by template function
+        nil
+      ;; Level 2+ headlines become text shapes within the slide
+      `(p:sp ()  ; esxml structure for a shape
+         (p:nvSpPr () ...)
+         (p:spPr () ...)
+         (p:txBody ()
+           (a:p ()
+             (a:r ()
+               (a:rPr ((b . "1")))  ; bold heading
+               (a:t ,title)))
+           ,contents)))))  ; transcoded child content
+
+;; Convert esxml to XML string for file writing
+(defun org-ppt--slide-to-xml (slide-esxml)
+  (esxml-to-xml slide-esxml))
 #+end_src
+
+The key insight: esxml structures are S-expressions, which are easy to build, manipulate, and inspect before final XML serialization.
 
 *** 2.2 Shape Generation
 
