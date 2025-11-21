@@ -97,6 +97,37 @@ If non-nil, creates a title slide from #+TITLE, #+SUBTITLE, etc."
        ((?P "As PPTX file" org-ppt-export-to-pptx)
         (?o "As PPTX file and open" org-ppt-export-to-pptx-and-open))))
 
+;;; Text Run Helpers
+
+(defun org-ppt--flatten-runs (contents)
+  "Flatten CONTENTS to a list of text runs.
+CONTENTS can be a single run, a list of runs, or nested lists."
+  (cond
+   ((null contents) nil)
+   ((and (listp contents)
+         (eq (car contents) 'a:r))
+    ;; Single run
+    (list contents))
+   ((listp contents)
+    ;; List of runs or nested lists
+    (apply #'append (mapcar #'org-ppt--flatten-runs contents)))
+   (t nil)))
+
+(defun org-ppt--add-run-formatting (runs properties)
+  "Add formatting PROPERTIES to all RUNS.
+PROPERTIES is an alist like ((b . "1") (i . "1"))."
+  (mapcar
+   (lambda (run)
+     (let* ((rpr (nth 1 run))  ; (a:rPr ...)
+            (existing-attrs (nth 1 rpr))  ; existing attributes
+            (new-attrs (append properties existing-attrs))  ; prepend new attrs
+            (rpr-children (nthcdr 2 rpr)))  ; children after attributes
+       ;; Rebuild the run with updated rPr
+       `(a:r ()
+          (a:rPr ,new-attrs ,@rpr-children)
+          ,@(nthcdr 2 run))))  ; keep a:t and other children
+   runs))
+
 ;;; Transcoder Functions
 
 (defun org-ppt-template (contents info)
@@ -136,43 +167,65 @@ INFO is a plist holding export options."
 
 (defun org-ppt-paragraph (paragraph contents info)
   "Transcode PARAGRAPH element to esxml.
-CONTENTS is the paragraph contents.
+CONTENTS is a list of text runs.
 INFO is a plist holding export options."
   (when contents
-    (concat contents "\n")))
+    (let ((runs (org-ppt--flatten-runs contents)))
+      (list
+       `(a:p ()
+          (a:pPr ())
+          ,@runs
+          (a:endParaRPr ((lang . "en-US"))))))))
 
 (defun org-ppt-plain-text (text info)
   "Transcode plain TEXT.
 INFO is a plist holding export options."
-  text)
+  ;; Return a DrawingML text run with no special formatting
+  (list
+   `(a:r ()
+      (a:rPr ((lang . "en-US")))
+      (a:t () ,(org-ppt--escape-xml text)))))
 
 (defun org-ppt-bold (bold contents info)
   "Transcode BOLD element.
-CONTENTS is the text with bold markup.
+CONTENTS is a list of text runs.
 INFO is a plist holding export options."
-  (format "*BOLD:%s*" contents))
+  (let ((runs (org-ppt--flatten-runs contents)))
+    (org-ppt--add-run-formatting runs '((b . "1")))))
 
 (defun org-ppt-italic (italic contents info)
   "Transcode ITALIC element.
-CONTENTS is the text with italic markup.
+CONTENTS is a list of text runs.
 INFO is a plist holding export options."
-  (format "*ITALIC:%s*" contents))
+  (let ((runs (org-ppt--flatten-runs contents)))
+    (org-ppt--add-run-formatting runs '((i . "1")))))
 
 (defun org-ppt-code (code _contents info)
   "Transcode CODE element.
 INFO is a plist holding export options."
-  (format "*CODE:%s*" (org-element-property :value code)))
+  (let ((text (org-element-property :value code)))
+    (list
+     `(a:r ()
+        (a:rPr ((lang . "en-US"))
+          (a:latin ((typeface . "Courier New"))))
+        (a:t () ,(org-ppt--escape-xml text))))))
 
 (defun org-ppt-underline (underline contents info)
   "Transcode UNDERLINE element.
-CONTENTS is the underlined text.
+CONTENTS is a list of text runs.
 INFO is a plist holding export options."
-  (format "*UNDERLINE:%s*" contents))
+  (let ((runs (org-ppt--flatten-runs contents)))
+    (org-ppt--add-run-formatting runs '((u . "sng")))))
 
 (defun org-ppt-verbatim (verbatim _contents info)
   "Transcode VERBATIM element.
 INFO is a plist holding export options."
-  (format "*VERBATIM:%s*" (org-element-property :value verbatim)))
+  (let ((text (org-element-property :value verbatim)))
+    (list
+     `(a:r ()
+        (a:rPr ((lang . "en-US"))
+          (a:latin ((typeface . "Courier New"))))
+        (a:t () ,(org-ppt--escape-xml text))))))
 
 (defun org-ppt-plain-list (plain-list contents info)
   "Transcode PLAIN-LIST element.

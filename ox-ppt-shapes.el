@@ -28,12 +28,11 @@
 (defun org-ppt--make-content-slide (headline info)
   "Create content slide from HEADLINE and INFO."
   (let ((title (substring-no-properties (org-ppt--headline-title headline)))
-        (content (substring-no-properties
-                  (org-export-data
-                   (org-element-contents headline)
-                   info))))
+        (paragraphs (org-export-data
+                     (org-element-contents headline)
+                     info)))
     (org-ppt--make-slide-xml
-     (org-ppt--make-content-shapes title content))))
+     (org-ppt--make-content-shapes title paragraphs))))
 
 ;;; Slide XML Structure
 
@@ -82,15 +81,16 @@
       4 914400 5486400 7315200 914400
       author 20))))
 
-(defun org-ppt--make-content-shapes (title content)
-  "Create shapes for content slide with TITLE and CONTENT."
+(defun org-ppt--make-content-shapes (title paragraphs)
+  "Create shapes for content slide with TITLE and PARAGRAPHS.
+TITLE is a plain string, PARAGRAPHS is a list of esxml paragraph elements."
   (list
    (org-ppt--make-text-box
     2 914400 457200 7315200 914400
     title 32)
-   (org-ppt--make-text-box
+   (org-ppt--make-text-box-with-paragraphs
     3 914400 1600200 7315200 4572000
-    content 18)))
+    paragraphs 18)))
 
 ;;; Text Box Generation
 
@@ -147,5 +147,57 @@ TEXT is content, SIZE is font size in points."
            (a:srgbClr ((val . "000000")))))
        (a:t () ,(org-ppt--escape-xml text)))))
 
+(defun org-ppt--make-text-box-with-paragraphs (id x y cx cy paragraphs size)
+  "Create text box shape with pre-formatted PARAGRAPHS.
+ID is shape ID, X Y are position, CX CY are dimensions.
+PARAGRAPHS is a list of esxml paragraph elements, SIZE is default font size."
+  `(p:sp ()
+     ,(org-ppt--make-shape-nvprops id (format "TextBox %d" id))
+     ,(org-ppt--make-shape-props x y cx cy)
+     ,(org-ppt--make-text-body-with-paragraphs paragraphs size)))
+(defun org-ppt--make-text-body-with-paragraphs (paragraphs size)
+  "Create text body with pre-formatted PARAGRAPHS at default SIZE.
+PARAGRAPHS is a list of esxml paragraph elements."
+  (let ((size-emu (* size 100))
+        (flat-paragraphs (org-ppt--flatten-paragraphs paragraphs)))
+    `(p:txBody ()
+       (a:bodyPr ((wrap . "square")
+                  (rtlCol . "0")))
+       (a:lstStyle ())
+       ,@(org-ppt--add-size-to-paragraphs flat-paragraphs size-emu))))
+(defun org-ppt--flatten-paragraphs (paragraphs)
+  "Flatten PARAGRAPHS to a list of paragraph elements."
+  (cond
+   ((null paragraphs) nil)
+   ((and (listp paragraphs)
+         (eq (car paragraphs) 'a:p))
+    ;; Single paragraph
+    (list paragraphs))
+   ((listp paragraphs)
+    ;; List of paragraphs or nested lists
+    (apply #'append (mapcar #'org-ppt--flatten-paragraphs paragraphs)))
+   (t nil)))
+(defun org-ppt--add-size-to-paragraphs (paragraphs size-emu)
+  "Add default font SIZE-EMU to all runs in PARAGRAPHS that don't have size."
+  (mapcar
+   (lambda (p)
+     (let* ((runs (seq-filter (lambda (elem) (and (listp elem) (eq (car elem) 'a:r))) p))
+            (non-runs (seq-remove (lambda (elem) (and (listp elem) (eq (car elem) 'a:r))) p))
+            (updated-runs (mapcar
+                           (lambda (run)
+                             (let* ((rpr (nth 1 run))
+                                    (attrs (nth 1 rpr))
+                                    (has-size (assoc 'sz attrs)))
+                               (if has-size
+                                   run
+                                 ;; Add size attribute
+                                 (let* ((new-attrs (cons `(sz . ,(format "%d" size-emu)) attrs))
+                                        (rpr-children (nthcdr 2 rpr)))
+                                   `(a:r ()
+                                      (a:rPr ,new-attrs ,@rpr-children)
+                                      ,@(nthcdr 2 run))))))
+                           runs)))
+       `(,(car p) ,(nth 1 p) ,@non-runs ,@updated-runs)))
+   paragraphs))
 (provide 'ox-ppt-shapes)
 ;;; ox-ppt-shapes.el ends here
