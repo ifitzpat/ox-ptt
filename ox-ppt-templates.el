@@ -249,10 +249,10 @@
                 (accent6 . "accent6")
                 (hlink . "hlink")
                 (folHlink . "folHlink")))
-     ,(org-ppt--slide-master-text-styles)
      (p:sldLayoutIdLst ()
        (p:sldLayoutId ((id . "2147483649")
-                       (r:id . "rId1"))))))
+                       (r:id . "rId1"))))
+     ,(org-ppt--slide-master-text-styles)))
 
 (defun org-ppt--slide-master-rels-xml ()
   "Generate ppt/slideMasters/_rels/slideMaster1.xml.rels."
