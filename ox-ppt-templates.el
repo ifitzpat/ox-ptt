@@ -418,10 +418,23 @@
      (Notes () "0")
      (HiddenSlides () "0")
      (ScaleCrop () "false")
+     (HeadingPairs ()
+       (vt:vector ((size . "4")
+                   (baseType . "variant"))
+         (vt:variant () (vt:lpstr () "Theme"))
+         (vt:variant () (vt:i4 () "1"))
+         (vt:variant () (vt:lpstr () "Slide Titles"))
+         (vt:variant () (vt:i4 () ,(number-to-string num-slides)))))
+     (TitlesOfParts ()
+       (vt:vector ((size . ,(number-to-string (+ 1 num-slides)))
+                   (baseType . "lpstr"))
+         (vt:lpstr () "Office Theme")
+         ,@(mapcar (lambda (_) `(vt:lpstr () "PowerPoint Presentation"))
+                   (number-sequence 1 num-slides))))
      (LinksUpToDate () "false")
      (SharedDoc () "false")
      (HyperlinksChanged () "false")
-     (AppVersion () "1.0")))
+     (AppVersion () "16.0000")))
 
 ;;; Presentation Properties
 
@@ -429,7 +442,17 @@
   "Generate ppt/presProps.xml with presentation properties."
   `(p:presentationPr ((xmlns:a . "http://schemas.openxmlformats.org/drawingml/2006/main")
                       (xmlns:r . "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
-                      (xmlns:p . "http://schemas.openxmlformats.org/presentationml/2006/main"))))
+                      (xmlns:p . "http://schemas.openxmlformats.org/presentationml/2006/main"))
+     (p:extLst ()
+       (p:ext ((uri . "{E76CE94A-603C-4142-B9EB-6D1370010A27}"))
+         (p14:discardImageEditData ((xmlns:p14 . "http://schemas.microsoft.com/office/powerpoint/2010/main")
+                                    (val . "0"))))
+       (p:ext ((uri . "{D31A062A-798A-4329-ABDD-BBA856620510}"))
+         (p14:defaultImageDpi ((xmlns:p14 . "http://schemas.microsoft.com/office/powerpoint/2010/main")
+                               (val . "220"))))
+       (p:ext ((uri . "{FD5EFAAD-0ECE-453E-9831-46B23BE46B34}"))
+         (p15:chartTrackingRefBased ((xmlns:p15 . "http://schemas.microsoft.com/office/powerpoint/2012/main")
+                                     (val . "0")))))))
 
 (defun org-ppt--view-props-xml ()
   "Generate ppt/viewProps.xml with view properties."
