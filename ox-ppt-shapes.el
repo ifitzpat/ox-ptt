@@ -46,8 +46,8 @@
        (p:spTree ()
          (p:nvGrpSpPr ()
            (p:cNvPr ((id . "1") (name . "")))
-           (p:cNvGrpSpPr ())
-           (p:nvPr ()))
+           (p:cNvGrpSpPr () "")
+           (p:nvPr () ""))
          (p:grpSpPr ()
            (a:xfrm ()
              (a:off ((x . "0") (y . "0")))
@@ -56,7 +56,7 @@
              (a:chExt ((cx . "0") (cy . "0")))))
          ,@shapes))
      (p:clrMapOvr ()
-       (a:masterClrMapping ()))))
+       (a:masterClrMapping () ""))))
 
 (defun org-ppt--make-slide-rels-xml (slide-num)
   "Create slide relationships XML for slide SLIDE-NUM."
@@ -127,7 +127,7 @@ TEXT is content, SIZE is font size in points."
   `(p:txBody ()
      (a:bodyPr ((wrap . "square")
                 (rtlCol . "0")))
-     (a:lstStyle ())
+     (a:lstStyle () "")
      (a:p ()
        ,(org-ppt--make-paragraph-props)
        ,(org-ppt--make-text-run text size)
