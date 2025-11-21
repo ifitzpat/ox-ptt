@@ -405,5 +405,76 @@ ASYNC, SUBTREEP, and VISIBLE-ONLY are passed to
     (when outfile
       (org-open-file outfile))))
 
+;;; Custom Tree Transcoder
+
+(defun org-ppt--transcode-contents (contents info)
+  "Transcode CONTENTS using our transcoders without string concatenation.
+CONTENTS is a list of org elements, INFO is the export plist."
+  (when contents
+    (mapcar (lambda (element)
+              (org-ppt--transcode-element element info))
+            contents)))
+
+(defun org-ppt--transcode-element (element info)
+  "Transcode a single ELEMENT using INFO."
+  (let ((type (org-element-type element)))
+    (cond
+     ;; Strings (plain text)
+     ((stringp element)
+      (org-ppt-plain-text element info))
+     
+     ;; Elements
+     ((eq type 'paragraph)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-paragraph element contents info)))
+     
+     ((eq type 'bold)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-bold element contents info)))
+     
+     ((eq type 'italic)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-italic element contents info)))
+     
+     ((eq type 'underline)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-underline element contents info)))
+     
+     ((eq type 'code)
+      (org-ppt-code element nil info))
+     
+     ((eq type 'verbatim)
+      (org-ppt-verbatim element nil info))
+     
+     ((eq type 'plain-list)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-plain-list element contents info)))
+     
+     ((eq type 'item)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-item element contents info)))
+     
+     ((eq type 'section)
+      (let ((contents (org-ppt--transcode-contents
+                       (org-element-contents element)
+                       info)))
+        (org-ppt-section element contents info)))
+     
+     ;; Unsupported types - return nil
+     (t nil))))
+
 (provide 'ox-ppt)
 ;;; ox-ppt.el ends here
+

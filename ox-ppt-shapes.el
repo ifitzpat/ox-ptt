@@ -28,7 +28,7 @@
 (defun org-ppt--make-content-slide (headline info)
   "Create content slide from HEADLINE and INFO."
   (let ((title (substring-no-properties (org-ppt--headline-title headline)))
-        (paragraphs (org-export-data
+        (paragraphs (org-ppt--transcode-contents
                      (org-element-contents headline)
                      info)))
     (org-ppt--make-slide-xml
