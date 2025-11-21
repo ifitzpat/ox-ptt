@@ -99,24 +99,20 @@ If non-nil, creates a title slide from #+TITLE, #+SUBTITLE, etc."
 
 ;;; Transcoder Functions
 
-(defvar-local org-ppt--temp-file nil
-  "Temporary PPTX file created during export.")
-
 (defun org-ppt-template (contents info)
   "Main template function for PPTX export.
 CONTENTS is the transcoded contents string.
 INFO is a plist holding export options.
 Creates PPTX file in temp location."
-  (let* ((temp-pptx (make-temp-file "ox-ppt-output-" nil ".pptx"))
+  (let* ((temp-pptx (plist-get info :ppt-temp-file))
          (temp-dir (make-temp-file "ox-ppt-" t)))
-    ;; Store temp file location for post-processing
-    (setq org-ppt--temp-file temp-pptx)
-    (unwind-protect
-        (progn
-          (org-ppt--write-pptx-structure temp-dir info)
-          (org-ppt--create-pptx-archive temp-dir temp-pptx))
-      (when (file-exists-p temp-dir)
-        (delete-directory temp-dir t))))
+    (when temp-pptx
+      (unwind-protect
+          (progn
+            (org-ppt--write-pptx-structure temp-dir info)
+            (org-ppt--create-pptx-archive temp-dir temp-pptx))
+        (when (file-exists-p temp-dir)
+          (delete-directory temp-dir t)))))
   ;; Return empty string to minimize text file size
   "")
 
@@ -315,19 +311,20 @@ contents of hidden elements.
 
 Return output file name."
   (interactive)
-  (let ((outfile (org-export-output-file-name ".pptx" subtreep)))
+  (let* ((outfile (org-export-output-file-name ".pptx" subtreep))
+         (temp-pptx (make-temp-file "ox-ppt-output-" nil ".pptx")))
     (org-export-to-file 'ppt outfile
       async subtreep visible-only
-      nil nil
+      nil
+      `(:ppt-temp-file ,temp-pptx)
       (lambda (file)
         ;; Post-process: replace text file with binary PPTX
-        (when (and org-ppt--temp-file (file-exists-p org-ppt--temp-file))
+        (when (file-exists-p temp-pptx)
           ;; Delete the text file created by org-export
           (when (file-exists-p file)
             (delete-file file))
           ;; Move the binary PPTX to final location
-          (rename-file org-ppt--temp-file file t)
-          (setq org-ppt--temp-file nil))
+          (rename-file temp-pptx file t))
         file))))
 
 (defun org-ppt-export-to-pptx-and-open (&optional async subtreep visible-only)
