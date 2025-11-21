@@ -230,7 +230,7 @@
                (a:gs ((pos . "100000")) (a:schemeClr ((val . "phClr")) (a:shade ((val . "63000"))) (a:satMod ((val . "120000"))))))
              (a:lin ((ang . "5400000") (scaled . "0")))))))
      (a:objectDefaults ())
-     (a:extraClrSchemeLst ())))
+     (a:extraClrSchemeLst ())))))
 
 (provide 'ox-ppt-templates)
 ;;; ox-ppt-templates.el ends here
