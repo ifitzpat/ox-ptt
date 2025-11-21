@@ -48,6 +48,39 @@
 
 ;;; Presentation XML
 
+(defun org-ppt--default-text-style-level (level margin)
+  "Generate default text style for LEVEL with left MARGIN in EMUs."
+  `(,(intern (format "a:lvl%dpPr" level))
+    ((marL . ,(format "%d" margin))
+     (algn . "l")
+     (defTabSz . "914400")
+     (rtl . "0")
+     (eaLnBrk . "1")
+     (latinLnBrk . "0")
+     (hangingPunct . "1"))
+    (a:defRPr ((sz . "1800")
+               (kern . "1200"))
+      (a:solidFill ()
+        (a:schemeClr ((val . "tx1"))))
+      (a:latin ((typeface . "+mn-lt")))
+      (a:ea ((typeface . "+mn-ea")))
+      (a:cs ((typeface . "+mn-cs"))))))
+
+(defun org-ppt--default-text-style ()
+  "Generate p:defaultTextStyle element for presentation."
+  `(p:defaultTextStyle ()
+     (a:defPPr ()
+       (a:defRPr ((lang . "en-US"))))
+     ,(org-ppt--default-text-style-level 1 0)
+     ,(org-ppt--default-text-style-level 2 457200)
+     ,(org-ppt--default-text-style-level 3 914400)
+     ,(org-ppt--default-text-style-level 4 1371600)
+     ,(org-ppt--default-text-style-level 5 1828800)
+     ,(org-ppt--default-text-style-level 6 2286000)
+     ,(org-ppt--default-text-style-level 7 2743200)
+     ,(org-ppt--default-text-style-level 8 3200400)
+     ,(org-ppt--default-text-style-level 9 3657600)))
+
 (defun org-ppt--presentation-xml (num-slides)
   "Generate ppt/presentation.xml for NUM-SLIDES slides."
   `(p:presentation ((xmlns:a . "http://schemas.openxmlformats.org/drawingml/2006/main")
@@ -62,9 +95,10 @@
                              (r:id . ,(format "rId%d" (+ 1 n))))))
                  (number-sequence 1 num-slides)))
      (p:sldSz ((cx . "9144000")
-               (cy . "6858000")))
-     (p:notesSz ((cx . "6858000")
-                 (cy . "9144000")))))
+               (cy . "6858000")
+               (type . "screen4x3")))
+                 (cy . "9144000"))))
+     ,(org-ppt--default-text-style)))
 
 ;;; Presentation Relationships
 
