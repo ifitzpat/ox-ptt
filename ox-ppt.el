@@ -224,11 +224,26 @@ INFO is a plist holding export options."
    (expand-file-name "_rels/.rels" temp-dir)
    (org-ppt--package-rels-xml))
   (org-ppt--write-xml-file
+   (expand-file-name "docProps/core.xml" temp-dir)
+   (org-ppt--core-properties-xml))
+  (org-ppt--write-xml-file
+   (expand-file-name "docProps/app.xml" temp-dir)
+   (org-ppt--app-properties-xml num-slides))
+  (org-ppt--write-xml-file
    (expand-file-name "ppt/presentation.xml" temp-dir)
    (org-ppt--presentation-xml num-slides))
   (org-ppt--write-xml-file
    (expand-file-name "ppt/_rels/presentation.xml.rels" temp-dir)
    (org-ppt--presentation-rels-xml num-slides))
+  (org-ppt--write-xml-file
+   (expand-file-name "ppt/presProps.xml" temp-dir)
+   (org-ppt--pres-props-xml))
+  (org-ppt--write-xml-file
+   (expand-file-name "ppt/viewProps.xml" temp-dir)
+   (org-ppt--view-props-xml))
+  (org-ppt--write-xml-file
+   (expand-file-name "ppt/tableStyles.xml" temp-dir)
+   (org-ppt--table-styles-xml))
   (org-ppt--write-master-and-layout temp-dir))
 
 (defun org-ppt--write-master-and-layout (temp-dir)

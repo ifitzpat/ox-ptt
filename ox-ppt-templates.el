@@ -35,7 +35,17 @@
      ,@(mapcar (lambda (n)
                  `(Override ((PartName . ,(format "/ppt/slides/slide%d.xml" n))
                             (ContentType . "application/vnd.openxmlformats-officedocument.presentationml.slide+xml"))))
-               (number-sequence 1 num-slides))))
+               (number-sequence 1 num-slides))
+     (Override ((PartName . "/ppt/presProps.xml")
+                (ContentType . "application/vnd.openxmlformats-officedocument.presentationml.presProps+xml")))
+     (Override ((PartName . "/ppt/viewProps.xml")
+                (ContentType . "application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml")))
+     (Override ((PartName . "/ppt/tableStyles.xml")
+                (ContentType . "application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml")))
+     (Override ((PartName . "/docProps/core.xml")
+                (ContentType . "application/vnd.openxmlformats-package.core-properties+xml")))
+     (Override ((PartName . "/docProps/app.xml")
+                (ContentType . "application/vnd.openxmlformats-officedocument.extended-properties+xml")))))
 
 ;;; Package Relationships
 
@@ -44,7 +54,13 @@
   `(Relationships ((xmlns . "http://schemas.openxmlformats.org/package/2006/relationships"))
      (Relationship ((Id . "rId1")
                     (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument")
-                    (Target . "ppt/presentation.xml")))))
+                    (Target . "ppt/presentation.xml")))
+     (Relationship ((Id . "rId2")
+                    (Type . "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties")
+                    (Target . "docProps/core.xml")))
+     (Relationship ((Id . "rId3")
+                    (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties")
+                    (Target . "docProps/app.xml")))))
 
 ;;; Presentation XML
 
@@ -105,15 +121,28 @@
 
 (defun org-ppt--presentation-rels-xml (num-slides)
   "Generate ppt/_rels/presentation.xml.rels for NUM-SLIDES slides."
-  `(Relationships ((xmlns . "http://schemas.openxmlformats.org/package/2006/relationships"))
-     (Relationship ((Id . "rId1")
-                    (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster")
-                    (Target . "slideMasters/slideMaster1.xml")))
-     ,@(mapcar (lambda (n)
-                 `(Relationship ((Id . ,(format "rId%d" (+ 1 n)))
-                                (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide")
-                                (Target . ,(format "slides/slide%d.xml" n)))))
-               (number-sequence 1 num-slides))))
+  (let ((next-id (+ 2 num-slides)))
+    `(Relationships ((xmlns . "http://schemas.openxmlformats.org/package/2006/relationships"))
+       (Relationship ((Id . "rId1")
+                      (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster")
+                      (Target . "slideMasters/slideMaster1.xml")))
+       ,@(mapcar (lambda (n)
+                   `(Relationship ((Id . ,(format "rId%d" (+ 1 n)))
+                                  (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide")
+                                  (Target . ,(format "slides/slide%d.xml" n)))))
+                 (number-sequence 1 num-slides))
+       (Relationship ((Id . ,(format "rId%d" next-id))
+                      (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps")
+                      (Target . "presProps.xml")))
+       (Relationship ((Id . ,(format "rId%d" (+ 1 next-id)))
+                      (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps")
+                      (Target . "viewProps.xml")))
+       (Relationship ((Id . ,(format "rId%d" (+ 2 next-id)))
+                      (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme")
+                      (Target . "theme/theme1.xml")))
+       (Relationship ((Id . ,(format "rId%d" (+ 3 next-id)))
+                      (Type . "http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles")
+                      (Target . "tableStyles.xml"))))))
 
 ;;; Slide Master
 
@@ -367,6 +396,53 @@
              (a:lin ((ang . "5400000") (scaled . "0")))))))
      (a:objectDefaults () "")
      (a:extraClrSchemeLst () "")))
+
+;;; Document Properties
+
+(defun org-ppt--core-properties-xml ()
+  "Generate docProps/core.xml with core document properties."
+  `(cp:coreProperties ((xmlns:cp . "http://schemas.openxmlformats.org/package/2006/metadata/core-properties")
+                       (xmlns:dc . "http://purl.org/dc/elements/1.1/")
+                       (xmlns:dcterms . "http://purl.org/dc/terms/")
+                       (xmlns:dcmitype . "http://purl.org/dc/dcmitype/")
+                       (xmlns:xsi . "http://www.w3.org/2001/XMLSchema-instance"))
+     (cp:revision () "1")))
+
+(defun org-ppt--app-properties-xml (num-slides)
+  "Generate docProps/app.xml with application properties for NUM-SLIDES."
+  `(Properties ((xmlns . "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties")
+                (xmlns:vt . "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"))
+     (Application () "org-mode ox-ppt")
+     (PresentationFormat () "On-screen Show (4:3)")
+     (Slides () ,(number-to-string num-slides))
+     (Notes () "0")
+     (HiddenSlides () "0")
+     (ScaleCrop () "false")
+     (LinksUpToDate () "false")
+     (SharedDoc () "false")
+     (HyperlinksChanged () "false")
+     (AppVersion () "1.0")))
+
+;;; Presentation Properties
+
+(defun org-ppt--pres-props-xml ()
+  "Generate ppt/presProps.xml with presentation properties."
+  `(p:presentationPr ((xmlns:a . "http://schemas.openxmlformats.org/drawingml/2006/main")
+                      (xmlns:r . "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+                      (xmlns:p . "http://schemas.openxmlformats.org/presentationml/2006/main"))))
+
+(defun org-ppt--view-props-xml ()
+  "Generate ppt/viewProps.xml with view properties."
+  `(p:viewPr ((xmlns:a . "http://schemas.openxmlformats.org/drawingml/2006/main")
+              (xmlns:r . "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+              (xmlns:p . "http://schemas.openxmlformats.org/presentationml/2006/main"))
+     (p:gridSpacing ((cx . "76200")
+                     (cy . "76200")))))
+
+(defun org-ppt--table-styles-xml ()
+  "Generate ppt/tableStyles.xml with table styles."
+  `(a:tblStyleLst ((xmlns:a . "http://schemas.openxmlformats.org/drawingml/2006/main")
+                   (def . "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"))))
 
 (provide 'ox-ppt-templates)
 ;;; ox-ppt-templates.el ends here

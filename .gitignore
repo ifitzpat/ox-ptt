@@ -12,3 +12,5 @@ pptx-latest/
 
 # Byte-compiled files
 *.elc
+pptx-current/
+pptx-repaired3/
