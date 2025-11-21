@@ -102,16 +102,10 @@ If non-nil, creates a title slide from #+TITLE, #+SUBTITLE, etc."
 (defun org-ppt-template (contents info)
   "Main template function for PPTX export.
 CONTENTS is the transcoded contents string.
-INFO is a plist holding export options."
-  (let* ((output-file (org-export-output-file-name ".pptx"))
-         (temp-dir (make-temp-file "ox-ppt-" t)))
-    (unwind-protect
-        (progn
-          (org-ppt--write-pptx-structure temp-dir info)
-          (org-ppt--create-pptx-archive temp-dir output-file)
-          output-file)
-      (when (file-exists-p temp-dir)
-        (delete-directory temp-dir t)))))
+INFO is a plist holding export options.
+This function is not used directly since PPTX creation is handled
+in `org-ppt-export-to-pptx'."
+  contents)
 
 (defun org-ppt-headline (headline contents info)
   "Transcode HEADLINE element to esxml.
@@ -308,9 +302,18 @@ contents of hidden elements.
 
 Return output file name."
   (interactive)
-  (let ((outfile (org-export-output-file-name ".pptx" subtreep)))
-    (org-export-to-file 'ppt outfile
-      async subtreep visible-only)))
+  (let* ((outfile (org-export-output-file-name ".pptx" subtreep))
+         (info (org-combine-plists
+                (org-export-get-environment 'ppt subtreep visible-only)
+                (list :output-file outfile)))
+         (temp-dir (make-temp-file "ox-ppt-" t)))
+    (unwind-protect
+        (progn
+          (org-ppt--write-pptx-structure temp-dir info)
+          (org-ppt--create-pptx-archive temp-dir outfile)
+          outfile)
+      (when (file-exists-p temp-dir)
+        (delete-directory temp-dir t)))))
 
 (defun org-ppt-export-to-pptx-and-open (&optional async subtreep visible-only)
   "Export to PPTX and open the resulting file.
