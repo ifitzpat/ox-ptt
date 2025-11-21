@@ -1,0 +1,12 @@
+# Temporary PPTX extraction directories for debugging
+pptx-new/
+pptx-repaired/
+pptx-repaired2/
+
+# Emacs backup files
+*~
+\#*\#
+.\#*
+
+# Byte-compiled files
+*.elc
