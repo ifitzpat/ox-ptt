@@ -166,66 +166,95 @@ INFO is a plist holding export options."
   contents)
 
 (defun org-ppt-paragraph (paragraph contents info)
-  "Transcode PARAGRAPH element to esxml.
-CONTENTS is a list of text runs.
+  "Transcode PARAGRAPH element.
+CONTENTS is a list of text runs or a string.
 INFO is a plist holding export options."
-  (when contents
-    (let ((runs (org-ppt--flatten-runs contents)))
-      (list
-       `(a:p ()
-          (a:pPr ())
-          ,@runs
-          (a:endParaRPr ((lang . "en-US"))))))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml paragraph
+      (when contents
+        (let ((runs (org-ppt--flatten-runs contents)))
+          (list
+           `(a:p ()
+              (a:pPr ())
+              ,@runs
+              (a:endParaRPr ((lang . "en-US")))))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-plain-text (text info)
   "Transcode plain TEXT.
 INFO is a plist holding export options."
-  ;; Return a DrawingML text run with no special formatting
-  (list
-   `(a:r ()
-      (a:rPr ((lang . "en-US")))
-      (a:t () ,(org-ppt--escape-xml text)))))
+  ;; When called by org-export framework, return empty string
+  ;; When called by our custom transcoder, return esxml
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml
+      (list
+       `(a:r ()
+          (a:rPr ((lang . "en-US")))
+          (a:t () ,(org-ppt--escape-xml text))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-bold (bold contents info)
   "Transcode BOLD element.
-CONTENTS is a list of text runs.
+CONTENTS is a list of text runs or a string.
 INFO is a plist holding export options."
-  (let ((runs (org-ppt--flatten-runs contents)))
-    (org-ppt--add-run-formatting runs '((b . "1")))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml with bold formatting
+      (let ((runs (org-ppt--flatten-runs contents)))
+        (org-ppt--add-run-formatting runs '((b . "1"))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-italic (italic contents info)
   "Transcode ITALIC element.
-CONTENTS is a list of text runs.
+CONTENTS is a list of text runs or a string.
 INFO is a plist holding export options."
-  (let ((runs (org-ppt--flatten-runs contents)))
-    (org-ppt--add-run-formatting runs '((i . "1")))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml with italic formatting
+      (let ((runs (org-ppt--flatten-runs contents)))
+        (org-ppt--add-run-formatting runs '((i . "1"))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-code (code _contents info)
   "Transcode CODE element.
 INFO is a plist holding export options."
-  (let ((text (org-element-property :value code)))
-    (list
-     `(a:r ()
-        (a:rPr ((lang . "en-US"))
-          (a:latin ((typeface . "Courier New"))))
-        (a:t () ,(org-ppt--escape-xml text))))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml with code formatting
+      (let ((text (org-element-property :value code)))
+        (list
+         `(a:r ()
+            (a:rPr ((lang . "en-US"))
+              (a:latin ((typeface . "Courier New"))))
+            (a:t () ,(org-ppt--escape-xml text)))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-underline (underline contents info)
   "Transcode UNDERLINE element.
-CONTENTS is a list of text runs.
+CONTENTS is a list of text runs or a string.
 INFO is a plist holding export options."
-  (let ((runs (org-ppt--flatten-runs contents)))
-    (org-ppt--add-run-formatting runs '((u . "sng")))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml with underline formatting
+      (let ((runs (org-ppt--flatten-runs contents)))
+        (org-ppt--add-run-formatting runs '((u . "sng"))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-verbatim (verbatim _contents info)
   "Transcode VERBATIM element.
 INFO is a plist holding export options."
-  (let ((text (org-element-property :value verbatim)))
-    (list
-     `(a:r ()
-        (a:rPr ((lang . "en-US"))
-          (a:latin ((typeface . "Courier New"))))
-        (a:t () ,(org-ppt--escape-xml text))))))
+  (if (plist-get info :ppt-custom-transcode)
+      ;; Custom transcoder mode: return esxml with verbatim formatting
+      (let ((text (org-element-property :value verbatim)))
+        (list
+         `(a:r ()
+            (a:rPr ((lang . "en-US"))
+              (a:latin ((typeface . "Courier New"))))
+            (a:t () ,(org-ppt--escape-xml text)))))
+    ;; Framework mode: return empty string
+    ""))
 
 (defun org-ppt-plain-list (plain-list contents info)
   "Transcode PLAIN-LIST element.
@@ -411,9 +440,11 @@ ASYNC, SUBTREEP, and VISIBLE-ONLY are passed to
   "Transcode CONTENTS using our transcoders without string concatenation.
 CONTENTS is a list of org elements, INFO is the export plist."
   (when contents
-    (mapcar (lambda (element)
-              (org-ppt--transcode-element element info))
-            contents)))
+    ;; Set flag to indicate we're using custom transcoding
+    (let ((info (plist-put (copy-sequence info) :ppt-custom-transcode t)))
+      (mapcar (lambda (element)
+                (org-ppt--transcode-element element info))
+              contents))))
 
 (defun org-ppt--transcode-element (element info)
   "Transcode a single ELEMENT using INFO."
