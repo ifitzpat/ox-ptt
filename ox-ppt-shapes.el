@@ -145,7 +145,7 @@ TEXT is content, SIZE is font size in points."
                (sz . ,(format "%d" size-emu)))
          (a:solidFill ()
            (a:srgbClr ((val . "000000")))))
-       (a:t ,(org-ppt--escape-xml text)))))
+       (a:t () ,(org-ppt--escape-xml text)))))
 
 (provide 'ox-ppt-shapes)
 ;;; ox-ppt-shapes.el ends here
