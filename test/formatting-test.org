@@ -1,0 +1,24 @@
+#+TITLE: Formatting Test
+#+SUBTITLE: Testing Rich Text
+#+AUTHOR: ox-ppt
+#+DATE: 2025-11-21
+
+* Text Formatting
+
+This slide has *bold text*, /italic text/, and _underlined text_.
+
+You can also combine formatting like *bold and /italic/* together.
+
+* Code and Verbatim
+
+Inline code looks like =printf("hello")= in the text.
+
+Verbatim text is shown as ~literal text~.
+
+* Mixed Content
+
+Here's a paragraph with *bold*, /italic/, _underline_, and =code= all mixed together.
+
+*This whole sentence is bold, with /italic inside/ it.*
+
+/This whole sentence is italic, with *bold inside* it./
