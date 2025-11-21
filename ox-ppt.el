@@ -125,7 +125,7 @@ PROPERTIES is an alist like ((b . "1") (i . "1"))."
        ;; Rebuild the run with updated rPr
        `(a:r ()
           (a:rPr ,new-attrs ,@rpr-children)
-          ,@(nthcdr 2 run))))  ; keep a:t and other children
+          ,@(nthcdr 3 run))))  ; skip old rPr, keep a:t and other children
    runs))
 
 ;;; Transcoder Functions
