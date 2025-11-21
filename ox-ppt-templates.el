@@ -97,7 +97,6 @@
      (p:sldSz ((cx . "9144000")
                (cy . "6858000")
                (type . "screen4x3")))
-                 (cy . "9144000"))))
      ,(org-ppt--default-text-style)))
 
 ;;; Presentation Relationships
