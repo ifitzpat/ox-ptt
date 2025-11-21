@@ -79,20 +79,20 @@ Also strips text properties to ensure clean XML generation."
   "Get document title from INFO plist."
   (let ((title (plist-get info :title)))
     (if title
-        (substring-no-properties (org-export-data title info))
+        (org-element-interpret-data title)
       "Untitled")))
 
 (defun org-ppt--get-subtitle (info)
   "Get document subtitle from INFO plist."
   (let ((subtitle (plist-get info :subtitle)))
     (when subtitle
-      (substring-no-properties (org-export-data subtitle info)))))
+      (org-element-interpret-data subtitle))))
 
 (defun org-ppt--get-author (info)
   "Get document author from INFO plist."
   (let ((author (plist-get info :author)))
     (when author
-      (substring-no-properties (org-export-data author info)))))
+      (org-element-interpret-data author))))
 
 (defun org-ppt--get-date (info)
   "Get document date from INFO plist."
