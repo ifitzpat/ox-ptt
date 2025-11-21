@@ -49,8 +49,12 @@
 ;;; String Utilities
 
 (defun org-ppt--escape-xml (text)
-  "Escape XML special characters in TEXT."
-  (let ((replacements '(("&" . "&amp;")
+  "Escape XML special characters in TEXT.
+Also strips text properties to ensure clean XML generation."
+  (let* ((clean-text (if (stringp text)
+                         (substring-no-properties text)
+                       text))
+         (replacements '(("&" . "&amp;")
                         ("<" . "&lt;")
                         (">" . "&gt;")
                         ("\"" . "&quot;")
@@ -59,7 +63,7 @@
                  (replace-regexp-in-string
                   (car pair) (cdr pair) str t t))
                replacements
-               :initial-value text)))
+               :initial-value clean-text)))
 
 (defun org-ppt--generate-id ()
   "Generate a unique ID for PPTX elements."
@@ -75,26 +79,26 @@
   "Get document title from INFO plist."
   (let ((title (plist-get info :title)))
     (if title
-        (org-export-data title info)
+        (substring-no-properties (org-export-data title info))
       "Untitled")))
 
 (defun org-ppt--get-subtitle (info)
   "Get document subtitle from INFO plist."
   (let ((subtitle (plist-get info :subtitle)))
     (when subtitle
-      (org-export-data subtitle info))))
+      (substring-no-properties (org-export-data subtitle info)))))
 
 (defun org-ppt--get-author (info)
   "Get document author from INFO plist."
   (let ((author (plist-get info :author)))
     (when author
-      (org-export-data author info))))
+      (substring-no-properties (org-export-data author info)))))
 
 (defun org-ppt--get-date (info)
   "Get document date from INFO plist."
   (let ((date (plist-get info :date)))
     (when date
-      (org-export-data date info))))
+      (substring-no-properties (org-export-data date info)))))
 
 ;;; List Processing Helpers
 
