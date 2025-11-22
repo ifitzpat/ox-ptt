@@ -118,14 +118,14 @@ CONTENTS can be a single run, a list of runs, or nested lists."
 PROPERTIES is an alist like ((b . "1") (i . "1"))."
   (mapcar
    (lambda (run)
-     (let* ((rpr (nth 1 run))  ; (a:rPr ...)
-            (existing-attrs (nth 1 rpr))  ; existing attributes
+     (let* ((rpr (nth 2 run))  ; (a:rPr ...) - first child of run
+            (existing-attrs (nth 1 rpr))  ; existing attributes of rPr
             (new-attrs (append properties existing-attrs))  ; prepend new attrs
-            (rpr-children (nthcdr 2 rpr)))  ; children after attributes
+            (rpr-children (nthcdr 2 rpr)))  ; children after rPr attributes
        ;; Rebuild the run with updated rPr
        `(a:r ()
           (a:rPr ,new-attrs ,@rpr-children)
-          ,@(nthcdr 3 run))))  ; skip old rPr, keep a:t and other children
+          ,@(nthcdr 3 run))))  ; skip tag, attrs, and old rPr
    runs))
 
 ;;; Transcoder Functions

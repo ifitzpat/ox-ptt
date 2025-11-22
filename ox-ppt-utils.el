@@ -75,24 +75,33 @@ Also strips text properties to ensure clean XML generation."
 
 ;;; Property Access Helpers
 
+(defun org-ppt--extract-plain-text (data)
+  "Extract plain text from DATA (an org element or secondary string).
+This bypasses our custom transcoders and returns plain text only."
+  (when data
+    (let ((text (org-export-data data '(ppt (:translate-alist . ((plain-text . (lambda (text _info) text))))))))
+      (substring-no-properties text))))
+
 (defun org-ppt--get-title (info)
   "Get document title from INFO plist."
-  (let ((title (plist-get info :title)))
-    (if title
-        (org-element-interpret-data title)
-      "Untitled")))
+  (let* ((title (plist-get info :title))
+         (result (if title
+                     (org-ppt--extract-plain-text title)
+                   "Untitled")))
+    (message "DEBUG: title raw=%S interpreted=%S" title result)
+    result))
 
 (defun org-ppt--get-subtitle (info)
   "Get document subtitle from INFO plist."
   (let ((subtitle (plist-get info :subtitle)))
     (when subtitle
-      (org-element-interpret-data subtitle))))
+      (org-ppt--extract-plain-text subtitle))))
 
 (defun org-ppt--get-author (info)
   "Get document author from INFO plist."
   (let ((author (plist-get info :author)))
     (when author
-      (org-element-interpret-data author))))
+      (org-ppt--extract-plain-text author))))
 
 (defun org-ppt--get-date (info)
   "Get document date from INFO plist."
