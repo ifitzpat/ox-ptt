@@ -84,12 +84,10 @@ This bypasses our custom transcoders and returns plain text only."
 
 (defun org-ppt--get-title (info)
   "Get document title from INFO plist."
-  (let* ((title (plist-get info :title))
-         (result (if title
-                     (org-ppt--extract-plain-text title)
-                   "Untitled")))
-    (message "DEBUG: title raw=%S interpreted=%S" title result)
-    result))
+  (let ((title (plist-get info :title)))
+    (if title
+        (org-ppt--extract-plain-text title)
+      "Untitled")))
 
 (defun org-ppt--get-subtitle (info)
   "Get document subtitle from INFO plist."
